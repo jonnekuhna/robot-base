@@ -49,6 +49,10 @@ public:
     return turnNorm;
   }
 
+  bool getButtonPress(uint8_t button) {
+    return Xbox.getButtonPress(button);
+  }
+
 private:
   XBOXUSB Xbox;
   float xNorm = 0;

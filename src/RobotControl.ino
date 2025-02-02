@@ -2,23 +2,20 @@
 #include <Adafruit_MCP4728.h>
 #include "XboxController.h"
 #include "MecanumControl.h"
-#include "SystemManager.h"
-
-bool inFault = true;  // System starts in fault mode
-unsigned long lastEnableTime = 0;  // Tracks motor enable timing
-int enableStep = 0;  // Tracks which motor is being enabled
-
-// Enable pins for each motor
-const int leftFrontEnablePin = 3;
-const int rightFrontEnablePin = 5;
-const int leftRearEnablePin = 6;
-const int rightRearEnablePin = 9;
+#include "systemManager.h"
 
 // Motor driver pins for direction
 const int leftFrontDirPin = 2;
 const int rightFrontDirPin = 4;
 const int leftRearDirPin = 7;
 const int rightRearDirPin = 8;
+
+// Enable pins for each motor
+const int leftFrontEnablePin = 22;
+const int rightFrontEnablePin = 24;
+const int leftRearEnablePin = 26;
+const int rightRearEnablePin = 28;
+
 
 // Initialize USB object
 USB Usb;
@@ -27,11 +24,11 @@ USB Usb;
 XboxController xbox(&Usb);
 MecanumControl drive;
 
-//Create SystemManager instance
-SystemManager systemManager(leftFrontEnablePin, rightFrontEnablePin, leftRearEnablePin, rightRearEnablePin, &xbox);
-
 // Initialize MCP4728 DAC
 Adafruit_MCP4728 mcp;
+
+// Create instance of SystemManager
+SystemManager sysManager;
 
 // Function to set motor direction and output analog voltage
 void setMotor(int dirPin, float motorValue, uint8_t channel) {
@@ -63,19 +60,41 @@ void setup() {
     while (1);
   }
 
-    systemManager.initSystem(); // inits enable signals of motors. Should add the whole initialization in the initSystem() function.
-
   // Set direction pins as outputs
   pinMode(leftFrontDirPin, OUTPUT);
   pinMode(rightFrontDirPin, OUTPUT);
   pinMode(leftRearDirPin, OUTPUT);
   pinMode(rightRearDirPin, OUTPUT);
+// Enable Motors
+  pinMode(leftFrontEnablePin, OUTPUT);
+  digitalWrite(leftFrontEnablePin, HIGH);
+  Serial.println(F("Left front motor enabled"));
+  delay(2000);
+
+  pinMode(rightFrontEnablePin, OUTPUT);
+  digitalWrite(rightFrontEnablePin, HIGH);
+  Serial.println(F("Right front motor enabled"));
+  delay(2000);
+
+  pinMode(leftRearEnablePin, OUTPUT);
+  digitalWrite(leftRearEnablePin, HIGH);
+  Serial.println(F("Left rear motor enabled"));
+  delay(2000);
+
+  pinMode(rightRearEnablePin, OUTPUT);
+  digitalWrite(rightRearEnablePin, HIGH);
+  Serial.println(F("Right rear motor enabled"));
+  delay(2000);
+
 
   Serial.println(F("Setup complete"));
 }
 
 void loop() {
   Usb.Task();
+
+  // Check fault/reconnect
+  sysManager.checkFault(xbox, Usb);
 
   if (xbox.isConnected()) {
     xbox.update();
@@ -88,22 +107,20 @@ void loop() {
     // Calculate motor powers
     drive.calculateMotorPowers(x, y, turn);
 
-    // Set motor directions and DAC outputs, inverts the left motor direction.
+    // Set motor directions and DAC outputs
     setMotor(leftFrontDirPin, -drive.getLeftFront(), MCP4728_CHANNEL_A);
     setMotor(rightFrontDirPin, drive.getRightFront(), MCP4728_CHANNEL_B);
     setMotor(leftRearDirPin, -drive.getLeftRear(), MCP4728_CHANNEL_C);
     setMotor(rightRearDirPin, drive.getRightRear(), MCP4728_CHANNEL_D);
-
-    /*
-     //Serial output for debugging
-    Serial.print("LF: ");
-    Serial.print(drive.getLeftFront(), 4);
-    Serial.print("\tRF: ");
-    Serial.print(drive.getRightFront(), 4);
-    Serial.print("\tLR: ");
-    Serial.print(drive.getLeftRear(), 4);
-    Serial.print("\tRR: ");
-    Serial.println(drive.getRightRear(), 4);
-    */
   }
+
+  // Serial output for debugging
+  Serial.print("LF: ");
+  Serial.print(drive.getLeftFront(), 4);
+  Serial.print("\tRF: ");
+  Serial.print(drive.getRightFront(), 4);
+  Serial.print("\tLR: ");
+  Serial.print(drive.getLeftRear(), 4);
+  Serial.print("\tRR: ");
+  Serial.println(drive.getRightRear(), 4);
 }
