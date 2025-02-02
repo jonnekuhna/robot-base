@@ -2,6 +2,17 @@
 #include <Adafruit_MCP4728.h>
 #include "XboxController.h"
 #include "MecanumControl.h"
+#include "SystemManager.h"
+
+bool inFault = true;  // System starts in fault mode
+unsigned long lastEnableTime = 0;  // Tracks motor enable timing
+int enableStep = 0;  // Tracks which motor is being enabled
+
+// Enable pins for each motor
+const int leftFrontEnablePin = 3;
+const int rightFrontEnablePin = 5;
+const int leftRearEnablePin = 6;
+const int rightRearEnablePin = 9;
 
 // Motor driver pins for direction
 const int leftFrontDirPin = 2;
@@ -15,6 +26,9 @@ USB Usb;
 // Create instances of XboxController and MecanumControl
 XboxController xbox(&Usb);
 MecanumControl drive;
+
+//Create SystemManager instance
+SystemManager systemManager(leftFrontEnablePin, rightFrontEnablePin, leftRearEnablePin, rightRearEnablePin, &xbox);
 
 // Initialize MCP4728 DAC
 Adafruit_MCP4728 mcp;
@@ -48,6 +62,8 @@ void setup() {
     Serial.println(F("Failed to initialize MCP4728!"));
     while (1);
   }
+
+    systemManager.initSystem(); // inits enable signals of motors. Should add the whole initialization in the initSystem() function.
 
   // Set direction pins as outputs
   pinMode(leftFrontDirPin, OUTPUT);
